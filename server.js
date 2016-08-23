@@ -1,6 +1,31 @@
 // Configuration
 var config = require('config');
 
+// Databases
+var low = require('lowdb');
+if(config.get('Data.driver') == 'json') {
+  const db = low(config.get('Data.location'));
+  db.defaults({ 
+    vss: [],
+    temp: [],
+    load_pct: [],
+    map: [],
+    iat: [],
+    baro: [],
+    aat: [],
+    vss: [],
+    rpm: [],
+    throttlepos: [],
+    frp: [],
+    fli: [],
+    shrtft13: [],
+    longft13: [],
+    shrtft24: [],
+    longft24: [],
+    fuelsys: [],
+    enginefrate: [],
+  }).value();
+}
 // OBD2
 var OBDReader = require('bluetooth-obd');
 var btOBDReader = new OBDReader();
@@ -54,6 +79,14 @@ if(config.get('OBD.bluetooth.autoconnect')) {
       console.log(data);
       dataReceivedMarker = data;
       if(typeof data.name !== 'undefined') {
+        if(config.Data.driver == 'json') {
+          db.get(data.name)
+          .push({
+            value: data.value,
+            time: new Date()
+          })
+          .value()
+        }
         switch(data.name) {
           case 'vss':
             handleVSS(data);
