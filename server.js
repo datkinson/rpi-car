@@ -1,16 +1,23 @@
+// Configuration
+var config = require('config');
+
+// OBD2
 var OBDReader = require('bluetooth-obd');
 var btOBDReader = new OBDReader();
 var dataReceivedMarker = {};
 var OBDConnection = false;
 var lastODBReading = 0;
+var OBDDeviceName = config.get('OBD.bluetooth.name');
 
+// Web Server
 var app = require('express')();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 
  
 console.log('Booting...');
-btOBDReader.on('connected', function () {
+if(config.get('OBD.bluetooth.autoconnect')) {
+  btOBDReader.on('connected', function () {
     OBDConnection = true;
     console.log('Connected');
     //this.requestValueByName("vss"); //vss = vehicle speed sensor 
@@ -36,42 +43,42 @@ btOBDReader.on('connected', function () {
     this.addPoller("enginefrate");
  
     this.startPolling(1000); //Request all values each second. 
-});
+  });
 
 
-function handleVSS(data) {
-  io.sockets.emit('update_vss', data.value);
-}
+  function handleVSS(data) {
+    io.sockets.emit('update_vss', data.value);
+  }
  
-btOBDReader.on('dataReceived', function (data) {
-    console.log(data);
-    dataReceivedMarker = data;
-    if(typeof data.name !== 'undefined') {
-      switch(data.name) {
-        case 'vss':
-          handleVSS(data);
-          break;
-        default:
-          console.log('Default Data Handle');
-          break;
+  btOBDReader.on('dataReceived', function (data) {
+      console.log(data);
+      dataReceivedMarker = data;
+      if(typeof data.name !== 'undefined') {
+        switch(data.name) {
+          case 'vss':
+            handleVSS(data);
+            break;
+          default:
+            console.log('Default Data Handle');
+            break;
+        }
+      }
+  });
+
+  function maintainOBDConnection() {
+    if(!OBDConnection) { 
+      try {
+        console.log('Autoconnecting...');
+        btOBDReader.autoconnect(OBDDeviceName);
+      } catch (err) {
+        console.log('Error: ', err);
       }
     }
-});
-
-function maintainOBDConnection() {
-  if(!OBDConnection) { 
-    try {
-      // Use first device with 'obd' in the name 
-      console.log('Autoconnecting...');
-      //btOBDReader.autoconnect('obd');
-      btOBDReader.autoconnect('OBDII');
-    } catch (err) {
-      console.log('Error: ', err);
-    }
-  }
+    setTimeout(maintainOBDConnection, 1000);
+  } 
+  // Kick off OBD connection
   setTimeout(maintainOBDConnection, 1000);
-} 
-
+}
 io.on('connection', function(socket){
   console.log('a user connected');
   socket.on('disconnect', function(){
@@ -93,7 +100,6 @@ app.get('/gauge.css', function(req, res){
   res.sendFile(__dirname + '/lib/jquery-guage/jquery-gauge.css');
 });
 
-setTimeout(maintainOBDConnection, 1000);
 
 http.listen(3000, function(){
   console.log('listening on *:3000');

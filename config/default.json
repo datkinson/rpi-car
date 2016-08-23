@@ -1,0 +1,13 @@
+{
+  // OBD module configs
+  "OBD": {
+    "bluetooth": {
+      "name": "OBDII",
+      "autoconnect": false
+    }
+  },
+  "Data": {
+    "driver": "json",
+    "location": "data/database.json"
+  }
+}
