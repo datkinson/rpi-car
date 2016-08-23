@@ -1,0 +1,19 @@
+{
+  "name": "rpi-car",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "pm2 start server.js --name 'car'",
+    "stop": "pm2 stop car"
+  },
+  "author": "Daniel Atkinson",
+  "license": "MIT",
+  "dependencies": {
+    "bluetooth-obd": "^0.2.3",
+    "express": "^4.14.0",
+    "pm2": "^1.1.3",
+    "socket.io": "^1.4.8"
+  }
+}
