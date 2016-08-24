@@ -33,17 +33,27 @@ var dataReceivedMarker = {};
 var OBDConnection = false;
 var lastODBReading = 0;
 var OBDDeviceName = config.get('OBD.bluetooth.name');
+var OBDStatus = 'Initialising';
 
 // Web Server
 var app = require('express')();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 
- 
+function getCurrentTimestamp() {
+  return Math.floor(new Date() / 1000);
+}
+
+var lastOBDPoll = getCurrentTimestamp();
+
+console.log('Initial timestamp', lastOBDPoll);
+
 console.log('Booting...');
 if(config.get('OBD.bluetooth.autoconnect')) {
   btOBDReader.on('connected', function () {
     OBDConnection = true;
+    OBDStatus = 'Connected';
+    io.sockets.emit('obd_status', OBDStatus);
     console.log('Connected');
     //this.requestValueByName("vss"); //vss = vehicle speed sensor 
  
@@ -77,6 +87,7 @@ if(config.get('OBD.bluetooth.autoconnect')) {
  
   btOBDReader.on('dataReceived', function (data) {
       console.log(data);
+      lastOBDPoll = getCurrentTimestamp();
       dataReceivedMarker = data;
       if(typeof data.name !== 'undefined') {
         if(config.Data.driver == 'json') {
@@ -99,12 +110,19 @@ if(config.get('OBD.bluetooth.autoconnect')) {
   });
 
   function maintainOBDConnection() {
+    if((getCurrentTimestamp() - lastOBDPoll) > 10) {
+      OBDConnection = false;
+    }
     if(!OBDConnection) { 
       try {
         console.log('Autoconnecting...');
+        OBDStatus = 'Connecting';
+        io.sockets.emit('obd_status', OBDStatus);
         btOBDReader.autoconnect(OBDDeviceName);
       } catch (err) {
         console.log('Error: ', err);
+        OBDStatus = 'Failed';
+        io.sockets.emit('obd_status', OBDStatus);
       }
     }
     setTimeout(maintainOBDConnection, 1000);
@@ -114,6 +132,7 @@ if(config.get('OBD.bluetooth.autoconnect')) {
 }
 io.on('connection', function(socket){
   console.log('a user connected');
+  socket.emit('obd_status', OBDStatus);
   socket.on('disconnect', function(){
     console.log('user disconnected');
   });

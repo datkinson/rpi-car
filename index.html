@@ -13,12 +13,17 @@ RPi Car
         float:left;
         margin:20px
     }
+    .status {
+        float: right;
+        size: 2em;
+    }
 </style>
 
 </head>
 <body>
 RPi Car
 <div class="gauge2 vss"></div>
+<div class="status">Initialising</div>
 <script type="text/javascript" src="jquery.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 <script type="text/javascript" src="gauge.js"></script>
@@ -51,6 +56,10 @@ function setSpeed(speed) {
 
 socket.on('update_vss', function(data){
   setSpeed(data);
+});
+
+socket.on('obd_status', function(data){
+  $('.status').text(data);
 });
 
 
